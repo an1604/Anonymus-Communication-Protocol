@@ -11,6 +11,7 @@ from Crypto.Util.Padding import pad, unpad
 
 SERVER_HOST = '127.0.0.1'
 SERVER_PORT = 2030
+MESSAGE_PATH = r"C:\Users\adina\Desktop\תקיית_עבודות\אבטחת רשתות\messages1.txt"
 
 
 def generate_symmetric_key(password, salt, key_size=16):
@@ -43,7 +44,8 @@ class Client:
         # Extracting the file's parameters for the communication.
         if file_name:
             with open(file_name, 'rb') as f:
-                data = f.read()
+                data = str(f.read())
+                print(f"data from file: {data}")
                 params = data.split(' ')
                 self.m = params[0]
                 self.servers_path = params[1].split(',')
@@ -53,6 +55,7 @@ class Client:
                 self.dest_ip = params[5]
                 self.dest_port = params[6]
                 self.symmetric_key = generate_symmetric_key(password=self.password, salt=self.salt_password)
+                print(f"The symmetric key is {self.symmetric_key}")
         else:
             self.dest_ip = '_'.join(SERVER_HOST.split('.'))
             self.dest_port = str(SERVER_PORT)
@@ -71,8 +74,6 @@ class Client:
         PK = self.client.recv(1024).decode()  # Get the public key of the server.
         self.server_PK = RSA.import_key(PK)
         self.server_PK_cipher = PKCS1_OAEP.new(self.server_PK)
-
-        print(f"Server's public key is yours, {PK}")
         user_input = ''
 
         while not 'exit' in user_input.lower():
@@ -113,4 +114,4 @@ class Client:
 
 
 if __name__ == '__main__':
-    c = Client(client_name='alice', client_port=1234)
+    c = Client(client_name='alice', client_port=1234, file_name=MESSAGE_PATH)

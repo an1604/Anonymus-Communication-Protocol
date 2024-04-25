@@ -8,6 +8,8 @@ import concurrent.futures
 
 HOST = '127.0.0.1'
 PORT = 2030
+PUBLIC_KEY_PATH = r"C:\Users\adina\Desktop\תקיית_עבודות\אבטחת רשתות\pk1.pem"
+SECRET_KEY_PATH = r"C:\Users\adina\Desktop\תקיית_עבודות\אבטחת רשתות\sk1.pem"
 
 
 def generate_rsa_keys(key_size=2048, PK_file_name=None, SK_file_name=None):  # The RSA key generation for the server
@@ -58,7 +60,8 @@ def handle_client(client_socket: socket, client_address, PK, message_len, SK, de
 
 class Server:
     def __init__(self):
-        self.PK, self.SK = generate_rsa_keys()  # The keys' generation phase.
+        self.PK, self.SK = generate_rsa_keys(PK_file_name=PUBLIC_KEY_PATH,
+                                             SK_file_name=SECRET_KEY_PATH)  # The keys' generation phase.
         self.sock = socket.socket(socket.AF_INET,
                                   socket.SOCK_STREAM)  # The main socket that will bind to the HOST & PORT
         self.message_len = 1000  # 1000 bytes for a single message.
