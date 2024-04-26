@@ -9,7 +9,7 @@ from Crypto.Random import get_random_bytes
 from Crypto.Protocol.KDF import scrypt
 from Crypto.Util.Padding import pad, unpad
 
-from templates_paths import *
+from Project.templates_paths import *
 
 
 def extract_addresses():
@@ -91,7 +91,7 @@ class Client:
 
     def run_client(self):
         self.client.connect((SERVER_HOST, SERVER_PORT))
-
+        l 
         while not self.stop:
             self.messages_sent.append(self.m)
             message_to_server = self.m.encode()  # Concatenate the prefix to the actual message

@@ -14,7 +14,7 @@ import concurrent.futures
 from Crypto.Random import get_random_bytes
 from Crypto.Util.Padding import unpad, pad
 
-from templates_paths import *
+from Project.templates_paths import *
 
 messages = []
 
