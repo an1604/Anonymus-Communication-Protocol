@@ -6,13 +6,10 @@ import traceback
 
 import concurrent.futures
 
-HOST = '127.0.0.1'
-PORT = 2030
-PUBLIC_KEY_PATH = r"C:\Users\adina\Desktop\תקיית_עבודות\אבטחת רשתות\pk2.pem"
-SECRET_KEY_PATH = r"C:\Users\adina\Desktop\תקיית_עבודות\אבטחת רשתות\sk2.pem"
+from templates_paths import PUBLIC_KEY_PATH, SECRET_KEY_PATH, HOST, PORT
 
 
-def read_rsa_keys(key_size=2048, PK_file_name=None, SK_file_name=None):  # The RSA key generation for the server
+def read_rsa_keys(PK_file_name, SK_file_name):  # The RSA key generation for the server
     with open(SK_file_name, 'r') as file:
         s_key = RSA.import_key(file.read()).export_key()
     with open(PK_file_name, 'rb') as file:
@@ -72,7 +69,7 @@ class Server:
         self.message_len = 1000  # 1000 bytes for a single message.
         self.deadline_time = 10  # The deadline time for the server keeps client's messages before sent them.
         self.clients = []  # List of clients with their names, ports,and ip addresses.
-        self.pool = concurrent.futures.ThreadPoolExecutor(max_workers=5)  # Thread-pool executor
+        self.pool = concurrent.futures.ThreadPoolExecutor(max_workers=1)  # Thread-pool executor
 
         print(f"The server is listening on {HOST}:{PORT}")
         self.sock.bind((HOST, PORT))  # The actual bind.

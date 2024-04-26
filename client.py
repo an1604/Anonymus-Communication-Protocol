@@ -9,10 +9,7 @@ from Crypto.Random import get_random_bytes
 from Crypto.Protocol.KDF import scrypt
 from Crypto.Util.Padding import pad, unpad
 
-SERVER_HOST = '127.0.0.1'
-SERVER_PORT = 2030
-MESSAGE_PATH = r"C:\Users\adina\Desktop\תקיית_עבודות\אבטחת רשתות\messages1.txt"
-BLOCK_SIZE = AES.block_size
+from templates_paths import BLOCK_SIZE, SERVER_HOST, SERVER_PORT, MESSAGE_PATH
 
 
 def generate_symmetric_key(password, salt, key_size=16):
