@@ -3,7 +3,7 @@ import socket
 from datetime import datetime, timedelta
 from Crypto.Cipher import PKCS1_OAEP
 import traceback
-
+import threading
 import concurrent.futures
 
 from templates_paths import PUBLIC_KEY_PATH, SECRET_KEY_PATH, HOST, PORT
@@ -19,7 +19,6 @@ def read_rsa_keys(PK_file_name, SK_file_name):  # The RSA key generation for the
 
 def handle_client(client_socket: socket, client_address, PK, message_len, SK, deadline_time):
     try:
-        client_socket.send(PK)  # Send the server's public key to the client
         msgs = []  # List of all messages
         start_time = datetime.now()
 
@@ -50,9 +49,6 @@ def handle_client(client_socket: socket, client_address, PK, message_len, SK, de
                     for m in msgs:  # Iterate over all the messages, and send them back to the client.
                         print(f"Sending {m} to {ip}:{port}")
                         sock.send(m)
-
-                msgs.clear()  # Clear the messages' list till the next timeout
-                start_time = datetime.now()  # Restart the timer.
     except Exception as e:
         print(f"Error: {e}")
         traceback.print_exc()

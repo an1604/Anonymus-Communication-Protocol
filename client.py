@@ -9,7 +9,22 @@ from Crypto.Random import get_random_bytes
 from Crypto.Protocol.KDF import scrypt
 from Crypto.Util.Padding import pad, unpad
 
-from templates_paths import BLOCK_SIZE, SERVER_HOST, SERVER_PORT, MESSAGE_PATH
+from templates_paths import *
+
+
+def extract_addresses():
+    ips = []
+    with open(IPS, 'r') as f:
+        for line in f:
+            ips.append(line.strip())
+
+    addresses = {}
+    for idx, add in enumerate(ips):
+        a = add.split(' ')
+        ip = a[0]
+        port = int(a[1])
+        addresses[idx] = (ip, port)  # Key- server index, value - ip and port
+    return addresses
 
 
 def generate_symmetric_key(password, salt, key_size=16):
@@ -32,6 +47,15 @@ def decrypt_message(encrypted_data, key):
     return decrypted_message
 
 
+def extract_PKs(servers):
+    pks = {}  # dictionary to store the public keys.
+    for server_idx in servers:
+        pk_path = PUBLIC_KEY_TEMPLATE.format(server_idx)
+        with open(pk_path, 'rb') as f:  # Open the current file according to the server's index.
+            pks[server_idx] = RSA.import_key(f.read()).export_key()
+    return pks
+
+
 class Client:
     def __init__(self, client_name, client_port, file_name):
         self.client_name = client_name
@@ -41,6 +65,7 @@ class Client:
         self.server_PK = None  # The server's public key, to encrypt the messages while sending to the server.
         self.server_PK_cipher = None
         self.symmetric_key = None  # The symmetric key for the communication between Alice and Bob.
+        self.servers_addresses = extract_addresses()  # Dictionary of all the ip and port addresses for each server in the servers' path.
 
         # Extracting the file's parameters for the communication.
         with open(file_name, 'rb') as f:
@@ -48,6 +73,7 @@ class Client:
             params = data.split(' ')
             self.m = params[0]
             self.servers_path = params[1].split(',')
+            self.servers_PKs = extract_PKs(servers=self.servers_path)
             self.sending_round = params[2]
             self.password = params[3]
             self.salt_password = params[4]
@@ -58,44 +84,39 @@ class Client:
 
         self.messages_sent = []
         self.messages_received = []
+        self.stop = False
 
         self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # The connection socket
         self.run_client()
 
     def run_client(self):
         self.client.connect((SERVER_HOST, SERVER_PORT))
-        PK = self.client.recv(1024).decode()  # Get the public key of the server.
-        self.server_PK = RSA.import_key(PK)
-        self.server_PK_cipher = PKCS1_OAEP.new(self.server_PK)
-        user_input = ''
 
-        while not 'exit' in user_input.lower():
-            user_input = input('Message:')
-            self.messages_sent.append(user_input)
-            message_to_server = user_input.encode()  # Concatenate the prefix to the actual message
+        while not self.stop:
+            self.messages_sent.append(self.m)
+            message_to_server = self.m.encode()  # Concatenate the prefix to the actual message
+            message_to_server = encrypt_message(message_to_server, self.symmetric_key)
 
-            # Encryption part
             encrypted_message = encrypt_message(message=message_to_server,
                                                 key=self.symmetric_key)  # Ours symmetric key encryption.
             encrypted_message = self.prefix + ' '.encode() + encrypted_message  # Chain the IP and PORT to the beginning of the message without encryption.
-            encrypted_message = self.server_PK_cipher.encrypt(encrypted_message)  # Server's PK encryption.
+            for i in range(len(self.servers_path) - 1, 0,
+                           -1):  # Running a reverse for loop
+                # to get all the encryption layers from the beginning to the end.
+                server_idx = self.servers_path[i]  # The actual index in the servers' path.
+                server_ip, server_port = self.servers_addresses[server_idx]
 
-            print(f"Prefix: {self.prefix}")
-            print(f"Message before sending: {encrypted_message}")
+                # The specific public key according to the server index.
+                server_PK = self.servers_PKs[server_idx]
+                server_PK = PKCS1_OAEP.new(server_PK)
 
-            self.messages_sent.append({
-                'message': user_input,
-                'encrypted_message': encrypted_message
-            })
+                if server_PK and server_ip and server_port:
+                    prefix = f"{server_ip} {server_port} {server_idx} {encrypted_message}".encode()  # The right prefix according to the specific server on the path.
+                    encrypted_message = server_PK.encrypt(prefix)  # The encryption chaining.
 
             self.client.send(encrypted_message)  # Sending the encrypted message to the server to decrypt it.
-            self.receive_data()  # Waiting for data to receive back from the server.
-
-        user_input = user_input.lower().encode()
-        user_input = encrypt_message(message=user_input, key=self.symmetric_key)
-        user_input = self.prefix + ' '.encode() + user_input
-        user_input = self.server_PK_cipher.encrypt(user_input)
-        self.client.send(user_input)  # Sent the exit command to the server
+            self.stop = True  # After sending the bomb, we can finish the client's task (for now).
+            # self.receive_data()  # Waiting for data to receive back from the server.
         self.client.close()
 
     def receive_data(self, timeout=2.5):
