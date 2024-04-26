@@ -3,7 +3,7 @@ import time
 from Crypto.Protocol.KDF import scrypt
 from Crypto.Random import get_random_bytes
 from Crypto.Util.Padding import pad, unpad
-
+import os
 from templates_paths import *
 
 
@@ -53,6 +53,13 @@ def extract_params_for_msg():
     }
 
 
+
+def load_pks(self, directory):
+    for filename in os.listdir(directory):
+        if filename.endswith(".pk"):
+            with open(os.path.join(directory, filename), 'rb') as f:
+                self.pks.append(f.read())
+
 def create_new_message(params_for_msg):
     next_ip = params_for_msg['dest_ip']
     next_port = params_for_msg['dest_port']
@@ -63,10 +70,10 @@ def create_new_message(params_for_msg):
 
     encrypted_message = encrypt_message(encoded_msg, symmetric_key)
     encrypted_message = prefix + ' '.encode() + encrypted_message
-
-    for i in range(len(servers_path) - 1, 0,
-                   -1):  # Running a reverse for loop
-        # to get all the encryption layers from the beginning to the end.
+    # [3,2,1] - > 
+    l = (servers_path[-1], encrypted_message)
+    for i in range(0, len(servers_path) - 1):
+                   
 
 
 if __name__ == '__main__':

@@ -91,7 +91,7 @@ class Client:
 
     def run_client(self):
         self.client.connect((SERVER_HOST, SERVER_PORT))
-
+        l 
         while not self.stop:
             self.messages_sent.append(self.m)
             message_to_server = self.m.encode()  # Concatenate the prefix to the actual message
