@@ -12,6 +12,7 @@ from Crypto.Util.Padding import pad, unpad
 SERVER_HOST = '127.0.0.1'
 SERVER_PORT = 2030
 MESSAGE_PATH = r"C:\Users\adina\Desktop\תקיית_עבודות\אבטחת רשתות\messages1.txt"
+BLOCK_SIZE = AES.block_size
 
 
 def generate_symmetric_key(password, salt, key_size=16):
@@ -20,19 +21,22 @@ def generate_symmetric_key(password, salt, key_size=16):
 
 
 def encrypt_message(message, key):
-    cipher = AES.new(key, AES.MODE_CBC)
-    ciphertext = cipher.encrypt(pad(message, AES.block_size))
-    return ciphertext, cipher.iv
-
-
-def decrypt_message(ciphertext, key, iv):
+    iv = get_random_bytes(BLOCK_SIZE)  # Generate a random IV
     cipher = AES.new(key, AES.MODE_CBC, iv)
-    decrypted_message = unpad(cipher.decrypt(ciphertext), AES.block_size)
+    ciphertext = cipher.encrypt(pad(message, BLOCK_SIZE))
+    return iv + ciphertext  # Prepend IV to the ciphertext
+
+
+def decrypt_message(encrypted_data, key):
+    iv = encrypted_data[:BLOCK_SIZE]  # Extract IV from the encrypted data
+    ciphertext = encrypted_data[BLOCK_SIZE:]  # Extract ciphertext
+    cipher = AES.new(key, AES.MODE_CBC, iv)
+    decrypted_message = unpad(cipher.decrypt(ciphertext), BLOCK_SIZE)
     return decrypted_message
 
 
 class Client:
-    def __init__(self, client_name, client_port, file_name=None):
+    def __init__(self, client_name, client_port, file_name):
         self.client_name = client_name
         self.client_ip = None
         self.client_port = client_port
@@ -42,26 +46,18 @@ class Client:
         self.symmetric_key = None  # The symmetric key for the communication between Alice and Bob.
 
         # Extracting the file's parameters for the communication.
-        if file_name:
-            with open(file_name, 'rb') as f:
-                data = str(f.read())
-                print(f"data from file: {data}")
-                params = data.split(' ')
-                self.m = params[0]
-                self.servers_path = params[1].split(',')
-                self.sending_round = params[2]
-                self.password = params[3]
-                self.salt_password = params[4]
-                self.dest_ip = params[5]
-                self.dest_port = params[6]
-                self.symmetric_key = generate_symmetric_key(password=self.password, salt=self.salt_password)
-                print(f"The symmetric key is {self.symmetric_key}")
-        else:
-            self.dest_ip = '_'.join(SERVER_HOST.split('.'))
-            self.dest_port = str(SERVER_PORT)
-
-        # Prefix building for responding.
-        self.prefix = f'{self.dest_ip} {self.dest_port}'
+        with open(file_name, 'rb') as f:
+            data = str(f.read())
+            params = data.split(' ')
+            self.m = params[0]
+            self.servers_path = params[1].split(',')
+            self.sending_round = params[2]
+            self.password = params[3]
+            self.salt_password = params[4]
+            self.dest_ip = params[5]
+            self.dest_port = params[6]
+            self.prefix = f'{self.dest_ip} {self.dest_port}'.encode()  # Prefix building for responding.
+            self.symmetric_key = generate_symmetric_key(password=self.password, salt=self.salt_password)
 
         self.messages_sent = []
         self.messages_received = []
@@ -79,16 +75,30 @@ class Client:
         while not 'exit' in user_input.lower():
             user_input = input('Message:')
             self.messages_sent.append(user_input)
-            message_to_server = self.prefix + ' ' + user_input  # Concatenate the prefix to the actual message
-            message_to_server_encoded = message_to_server.encode()
+            message_to_server = user_input.encode()  # Concatenate the prefix to the actual message
 
-            # The encryption part uses the public key of the server
-            encrypted_message = self.server_PK_cipher.encrypt(message_to_server_encoded)
-            self.client.send(encrypted_message)
+            # Encryption part
+            encrypted_message = encrypt_message(message=message_to_server,
+                                                key=self.symmetric_key)  # Ours symmetric key encryption.
+            encrypted_message = self.prefix + ' '.encode() + encrypted_message  # Chain the IP and PORT to the beginning of the message without encryption.
+            encrypted_message = self.server_PK_cipher.encrypt(encrypted_message)  # Server's PK encryption.
 
-            self.receive_data()
+            print(f"Prefix: {self.prefix}")
+            print(f"Message before sending: {encrypted_message}")
 
-        self.client.send(user_input.lower().encode())  # Sent the exit command to the server
+            self.messages_sent.append({
+                'message': user_input,
+                'encrypted_message': encrypted_message
+            })
+
+            self.client.send(encrypted_message)  # Sending the encrypted message to the server to decrypt it.
+            self.receive_data()  # Waiting for data to receive back from the server.
+
+        user_input = user_input.lower().encode()
+        user_input = encrypt_message(message=user_input, key=self.symmetric_key)
+        user_input = self.prefix + ' '.encode() + user_input
+        user_input = self.server_PK_cipher.encrypt(user_input)
+        self.client.send(user_input)  # Sent the exit command to the server
         self.client.close()
 
     def receive_data(self, timeout=2.5):
@@ -96,9 +106,10 @@ class Client:
         start_time = time.time()
         while True:
             try:
-                data_received = self.client.recv(1024).decode()
+                data_received = self.client.recv(1024)
                 if data_received:
-                    print(f"Response: {data_received}")
+                    data_received_decrypted = decrypt_message(encrypted_data=data_received, key=self.symmetric_key)
+                    print(f"Response: {data_received_decrypted}")
             except socket.error as e:
                 # Handle non-blocking socket exception
                 if e.errno == errno.EWOULDBLOCK:

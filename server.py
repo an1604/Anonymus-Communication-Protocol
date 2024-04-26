@@ -8,22 +8,15 @@ import concurrent.futures
 
 HOST = '127.0.0.1'
 PORT = 2030
-PUBLIC_KEY_PATH = r"C:\Users\adina\Desktop\תקיית_עבודות\אבטחת רשתות\pk1.pem"
-SECRET_KEY_PATH = r"C:\Users\adina\Desktop\תקיית_עבודות\אבטחת רשתות\sk1.pem"
+PUBLIC_KEY_PATH = r"C:\Users\adina\Desktop\תקיית_עבודות\אבטחת רשתות\pk2.pem"
+SECRET_KEY_PATH = r"C:\Users\adina\Desktop\תקיית_עבודות\אבטחת רשתות\sk2.pem"
 
 
-def generate_rsa_keys(key_size=2048, PK_file_name=None, SK_file_name=None):  # The RSA key generation for the server
-    if SK_file_name is None and PK_file_name is None:
-        # If the filename is None, we generate a 2048-bit random key.
-        key = RSA.generate(key_size)
-        p_key = key.publickey().export_key()
-        s_key = key.export_key()
-    else:  # Otherwise, we're reading the key from the file
-        with open(SK_file_name, 'r') as file:
-            s_key = RSA.import_key(file.read()).export_key()
-        with open(PK_file_name, 'rb') as file:
-            p_key = RSA.import_key(file.read()).export_key()
-
+def read_rsa_keys(key_size=2048, PK_file_name=None, SK_file_name=None):  # The RSA key generation for the server
+    with open(SK_file_name, 'r') as file:
+        s_key = RSA.import_key(file.read()).export_key()
+    with open(PK_file_name, 'rb') as file:
+        p_key = RSA.import_key(file.read()).export_key()
     return p_key, s_key
 
 
@@ -39,15 +32,27 @@ def handle_client(client_socket: socket, client_address, PK, message_len, SK, de
         data = ''
         while not 'exit' in str(data).lower():
             data = client_socket.recv(1024)
-            decrypted_data = cipher.decrypt(data).decode()
-            data = decrypted_data.encode()
-            msgs.append(data)
+            decrypted_data = cipher.decrypt(data)
+
+            # Extract the parameters for sending back to the other user.
+            params = bytearray(decrypted_data)[:14].decode()
+            params = params.split(' ')
+            print(f"params: {params}")
+            ip = params[0]
+            port = int(params[1])
+            print(f"ip: {ip}, port: {port}")
+
+            msgs.append(decrypted_data)
 
             # Timeout occurrence.
             current_time = datetime.now()
             if current_time - start_time >= timedelta(seconds=deadline_time):
-                for m in msgs:  # Iterate over all the messages, and sent them back to the client.
-                    client_socket.send(m)
+                # Create a new socket for the next-edge-user, using the ip and port that extracted.
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+                    sock.connect((ip, port))
+                    for m in msgs:  # Iterate over all the messages, and send them back to the client.
+                        print(f"Sending {m} to {ip}:{port}")
+                        sock.send(m)
 
                 msgs.clear()  # Clear the messages' list till the next timeout
                 start_time = datetime.now()  # Restart the timer.
@@ -60,8 +65,8 @@ def handle_client(client_socket: socket, client_address, PK, message_len, SK, de
 
 class Server:
     def __init__(self):
-        self.PK, self.SK = generate_rsa_keys(PK_file_name=PUBLIC_KEY_PATH,
-                                             SK_file_name=SECRET_KEY_PATH)  # The keys' generation phase.
+        self.PK, self.SK = read_rsa_keys(PK_file_name=PUBLIC_KEY_PATH,
+                                         SK_file_name=SECRET_KEY_PATH)  # The keys' generation phase.
         self.sock = socket.socket(socket.AF_INET,
                                   socket.SOCK_STREAM)  # The main socket that will bind to the HOST & PORT
         self.message_len = 1000  # 1000 bytes for a single message.
