@@ -6,7 +6,7 @@ import traceback
 import threading
 import concurrent.futures
 
-from templates_paths import PUBLIC_KEY_PATH, SECRET_KEY_PATH, HOST, PORT
+from Project.templates_paths import PUBLIC_KEY_PATH, SECRET_KEY_PATH, HOST, PORT
 
 
 def read_rsa_keys(PK_file_name, SK_file_name):  # The RSA key generation for the server

@@ -9,7 +9,7 @@ from Crypto.Random import get_random_bytes
 from Crypto.Protocol.KDF import scrypt
 from Crypto.Util.Padding import pad, unpad
 
-from templates_paths import *
+from Project.templates_paths import *
 
 
 def extract_addresses():
