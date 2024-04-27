@@ -4,12 +4,11 @@ import socket
 import traceback
 import time
 import errno
-from Crypto.Cipher import AES
 from Crypto.Random import get_random_bytes
 from Crypto.Protocol.KDF import scrypt
 from Crypto.Util.Padding import pad, unpad
 
-from Project.templates_paths import *
+from dynamic_templates_paths import *
 
 
 def extract_addresses():
