@@ -3,10 +3,13 @@ from Crypto.Random import get_random_bytes
 from Crypto.Util.Padding import unpad, pad
 
 from Crypto.PublicKey import RSA
-
+#import sys please dont delete 
+# sys.path.append('/workspaces/Anonymus-Communication-Protocol') please dont delete 
+# export PYTHONPATH=/workspaces/Anonymus-Communication-Protocol:$PYTHONPATH please dont delete 
 from dynamic_templates_paths import *
 
 RECEIVER_PORT = 2020  # The port that the receiver listens to.
+
 
 
 def extract_params_for_msg():
@@ -54,6 +57,7 @@ def load_IPORTS():
             ip, port = line.split(" ")
             ips.append(ip)
             ports.append(int(port))
+            # print(f"IP: {ip}, Port: {port}")
     return ips, ports
 
 

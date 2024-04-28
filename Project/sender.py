@@ -6,9 +6,11 @@ from Crypto.Cipher import PKCS1_OAEP
 from helper_functions import *
 
 
+
 def create_new_message(params_for_msg):
     next_ip = params_for_msg['dest_ip']
     next_port = params_for_msg['dest_port']
+    
 
     # Extracting the symmetric key and encrypt the message with it.
     symmetric_key = params_for_msg['symmetric_key']
@@ -40,7 +42,8 @@ def create_new_message(params_for_msg):
             pfx = prefix_to_bytes(ip, port) + l  # Prefix building for responding.
             l = cipher.encrypt(pfx)
     print(f"The encrypted message {l}")
-    send_message(next_ip, next_port, l, params_for_msg['servers_path'])
+    # !!! replaced next_ip, next_port with ip, port ( next_ip and next_port are the destination ip and port of the receiver not the server) - omer 28/4/24
+    send_message(ip, port, l, params_for_msg['servers_path'])
     # now we have a message encrypted with the public keys of all servers if needed
 
 
@@ -49,6 +52,7 @@ def send_message(ip, port, encrypted_message, servers_path):
     if '_' in ip:
         ip = ip.replace('_', '.')
     with (socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s):
+        print(f"Connecting to {ip}:{port}")
         s.connect((ip, int(port)))
         s.send(servers_path)  # Sending the server's path
         s.sendall(encrypted_message)
