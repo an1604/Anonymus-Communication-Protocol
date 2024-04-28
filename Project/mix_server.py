@@ -26,8 +26,8 @@ def send_message():
         for msg in tmp_arr:
             print("Message received!")
             # Extracting the relevant information.
-            if current_server_id:
-                server_id = current_server_id
+            if my_id:
+                server_id = my_id
                 ip = msg['ip']
                 port = msg['port']
                 data_ = msg['message_decrypted']
@@ -39,7 +39,7 @@ def send_message():
                     s.connect((ip, port))
                     s.sendall(data_)
 
-                    print(f"New message sent to server {server_id}, on {ip}:{port}"
+                    print(f"New message sent to server {my_id}, on {ip}:{port}"
                           f"\nThe message is {data_}")
 
                     s.close()
@@ -64,16 +64,16 @@ def extract_params_from_msg(msg):
     global current_server_id
     global first
     global path_of_servers
-    print(f"Current server id: {current_server_id}")
+    # print(f"Current server id: {current_server_id}")
     print("Congrats you got a msg!")
-    server_sk = load_single_SK(current_server_id)
+    server_sk = load_single_SK(my_id)
     cipher = PKCS1_OAEP.new(server_sk)
 
     message_decrypted = cipher.decrypt(message)
     # print(f"Decrypted received message: {message_decrypted}")
     ip = [str(b) for b in message_decrypted[:4]]
     ip = '.'.join(ip)
-    port = int.from_bytes(message_decrypted[4:6])
+    port = int.from_bytes(message_decrypted[4:6], byteorder='big')
     data_ = message_decrypted[6:]
     return {
         'ip': ip,
@@ -113,12 +113,12 @@ if __name__ == '__main__':
         client_sock, client_address = server.accept()
         print(f"Client {client_address} connected")
         try:
-            if first:
-                first = False
-                path_of_servers = client_sock.recv(5).decode()
-                path_of_servers = [int(num) for num in path_of_servers.split('_')]
-                current_server_id = path_of_servers[0]
-                path_of_servers = path_of_servers[1:]
+            # if first:
+            #     first = False
+            #     path_of_servers = client_sock.recv(5)
+            #     path_of_servers = [int(num) for num in path_of_servers.split('_')]
+            #     current_server_id = path_of_servers[0]
+            #     path_of_servers = path_of_servers[1:]
 
             message = client_sock.recv(1024)
             msg_params = extract_params_from_msg(message)  # The params extracted from the message (after decryption).
