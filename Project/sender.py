@@ -54,7 +54,6 @@ def send_message(ip, port, encrypted_message, servers_path):
     with (socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s):
         print(f"Connecting to {ip}:{port}")
         s.connect((ip, int(port)))
-        s.send(servers_path)  # Sending the server's path
         s.sendall(encrypted_message)
         s.close()
         print("Message successfully sent!")

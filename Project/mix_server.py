@@ -2,7 +2,7 @@ import random
 import threading
 import time
 import traceback
-
+import sys
 from Crypto.Cipher import PKCS1_OAEP
 
 from helper_functions import *
@@ -83,6 +83,7 @@ def extract_params_from_msg(msg):
     }
 
 
+
 if __name__ == '__main__':
     first = True
     # Initialize a general server,
@@ -98,9 +99,10 @@ if __name__ == '__main__':
     # example: for server in server_list:
     #           server_id = server_list.index(server)
     #           mix_server(server_id)
-    server.bind(('', 9002))
+    my_id = int(sys.argv[1])
+    server.bind(('', ports[my_id - 1]))
     server.listen()
-    print("Server listening...")
+    print(f"Server {my_id} listening...")
 
     t = threading.Thread(target=send_message)
     t.daemon = True
