@@ -3,10 +3,9 @@ import socket
 from datetime import datetime, timedelta
 from Crypto.Cipher import PKCS1_OAEP
 import traceback
-import threading
 import concurrent.futures
 
-from Project.templates_paths import PUBLIC_KEY_PATH, SECRET_KEY_PATH, HOST, PORT
+from dynamic_templates_paths import PUBLIC_KEY_PATH, SECRET_KEY_PATH, HOST, PORT
 
 
 def read_rsa_keys(PK_file_name, SK_file_name):  # The RSA key generation for the server
