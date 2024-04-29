@@ -14,7 +14,7 @@ sys.path.append('/workspaces/Anonymus-Communication-Protocol')
 from dynamic_templates_paths import *
 
 RECEIVER_PORT = 5000  # The port that the receiver listens to.
-
+# TODO: update this to be dynamic
 
 
 def extract_params_for_msg():
