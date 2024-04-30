@@ -4,13 +4,17 @@ from Crypto.Util.Padding import unpad, pad
 
 from Crypto.PublicKey import RSA
 import sys 
+import hashlib
+from base64 import urlsafe_b64encode
+from base64 import urlsafe_b64decode
+
 sys.path.append('/workspaces/Anonymus-Communication-Protocol') 
 
 #  export PYTHONPATH=/workspaces/Anonymus-Communication-Protocol:$PYTHONPATH please dont delete 
 from dynamic_templates_paths import *
 
-RECEIVER_PORT = 2020  # The port that the receiver listens to.
-
+RECEIVER_PORT = 5000  # The port that the receiver listens to.
+# TODO: update this to be dynamic
 
 
 def extract_params_for_msg():
@@ -62,19 +66,30 @@ def load_IPORTS():
     return ips, ports
 
 
-def generate_symmetric_key(password, salt, key_size=16):  # Generate a symmetric key for sender and receiver.
-    key = scrypt(password, salt, key_size, N=2 ** 14, r=8, p=1)
-    return key
+
+def generate_symmetric_key(password: str, salt: str) -> bytes:
+    # Convert password and salt to bytes
+    password = password.encode()
+    salt = salt.encode()
+
+    # Use PBKDF2 to generate a key of the same size as the password
+    key = hashlib.pbkdf2_hmac('sha256', password, salt, 100000, 32)
+
+    # Return the key
+    return urlsafe_b64encode(key).decode()
 
 
 def encrypt_message(message, key):
-    iv = get_random_bytes(BLOCK_SIZE)  # Generate a random IV
+    key = urlsafe_b64decode(key)
+    iv = get_random_bytes(BLOCK_SIZE)
+    print(f'iv_str size is {len(iv)}')
     cipher = AES.new(key, AES.MODE_CBC, iv)
-    ciphertext = cipher.encrypt(pad(message, BLOCK_SIZE))
-    return iv + ciphertext  # Prepend IV to the ciphertext
+    ciphertext = cipher.encrypt(pad(message, AES.block_size))
+    return (iv + ciphertext) # Prepend IV to the ciphertext
 
 
 def decrypt_message(encrypted_data, key):
+    key = urlsafe_b64decode(key)
     iv = encrypted_data[:BLOCK_SIZE]  # Extract IV from the encrypted data
     ciphertext = encrypted_data[BLOCK_SIZE:]  # Extract ciphertext
     cipher = AES.new(key, AES.MODE_CBC, iv)

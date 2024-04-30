@@ -30,12 +30,13 @@ def send_message():
                 server_id = my_id
                 ip = msg['ip']
                 port = msg['port']
-                data_ = msg['message_decrypted']
+                data_ = msg['message']
 
                 current_port = port  # Update the current port for the mix server new server.
                 # t1 = threading.Thread(target=make_server)
 
                 with (socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s):
+                    # print(f"Connecting to {ip}:{port}")
                     s.connect((ip, port))
                     s.sendall(data_)
 
@@ -65,15 +66,16 @@ def extract_params_from_msg(msg):
     global first
     global path_of_servers
     # print(f"Current server id: {current_server_id}")
-    print("Congrats you got a msg!")
+    # print("Congrats you got a msg!")
     server_sk = load_single_SK(my_id)
     cipher = PKCS1_OAEP.new(server_sk)
-
+    # print(f"Messageeeeeeee: {message}")
     message_decrypted = cipher.decrypt(message)
     # print(f"Decrypted received message: {message_decrypted}")
     ip = [str(b) for b in message_decrypted[:4]]
     ip = '.'.join(ip)
     port = int.from_bytes(message_decrypted[4:6], byteorder='big')
+    # print(f"IP: {ip}, Port: {port}")
     data_ = message_decrypted[6:]
     return {
         'ip': ip,
