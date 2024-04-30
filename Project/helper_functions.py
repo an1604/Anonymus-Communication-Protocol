@@ -1,24 +1,22 @@
-from Crypto.Protocol.KDF import scrypt
+import os.path
+
 from Crypto.Random import get_random_bytes
 from Crypto.Util.Padding import unpad, pad
 
 from Crypto.PublicKey import RSA
-import sys 
+import sys
 import hashlib
 from base64 import urlsafe_b64encode
 from base64 import urlsafe_b64decode
 
-sys.path.append('/workspaces/Anonymus-Communication-Protocol') 
+general_script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(general_script_dir)
 
-#  export PYTHONPATH=/workspaces/Anonymus-Communication-Protocol:$PYTHONPATH please dont delete 
 from dynamic_templates_paths import *
 
-RECEIVER_PORT = 5000  # The port that the receiver listens to.
-# TODO: update this to be dynamic
 
-
-def extract_params_for_msg():
-    with open(MESSAGE_PATH, 'rb') as f:
+def extract_params_for_msg(msg_idx):
+    with open(MESSAGE_PATH.format(msg_idx), 'rb') as f:
         data = f.read().decode()
         print(data)
         params_ = data.split(' ')
@@ -66,7 +64,6 @@ def load_IPORTS():
     return ips, ports
 
 
-
 def generate_symmetric_key(password: str, salt: str) -> bytes:
     # Convert password and salt to bytes
     password = password.encode()
@@ -85,7 +82,7 @@ def encrypt_message(message, key):
     print(f'iv_str size is {len(iv)}')
     cipher = AES.new(key, AES.MODE_CBC, iv)
     ciphertext = cipher.encrypt(pad(message, AES.block_size))
-    return (iv + ciphertext) # Prepend IV to the ciphertext
+    return iv + ciphertext  # Prepend IV to the ciphertext
 
 
 def decrypt_message(encrypted_data, key):
