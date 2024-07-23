@@ -1,3 +1,4 @@
+import argparse
 import threading
 from datetime import datetime
 
@@ -15,9 +16,7 @@ def receive_data(client, params_):
     print(f'{message} --> {time_}')
 
 
-if __name__ == '__main__':
-    # Extracting the ip and port for the receiver to listen on.
-    msg_idx = sys.argv[1]
+def main(msg_idx):
     if msg_idx.isdigit():
         params = extract_params_for_msg(msg_idx)
         receiver_ip = params['dest_ip']
@@ -34,3 +33,12 @@ if __name__ == '__main__':
             client_socket.close()
     else:
         print(f"{msg_idx} is not a digit, try again.")
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Message Receiver Script')
+    parser.add_argument('--msg_idx', type=str, help='Message index to receive')
+    args = parser.parse_args()
+    msg_idx = args.msg_idx
+
+    main(msg_idx)

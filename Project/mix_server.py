@@ -1,12 +1,11 @@
 import random
 import threading
 import time
-import traceback
-import sys
 from Crypto.Cipher import PKCS1_OAEP
 
 from helper_functions import *
 import socket
+import argparse
 
 messages = []  # The messages the server has to send at each round.
 current_server_id = None  # variable to store the server id.
@@ -27,48 +26,29 @@ def send_message():
         for msg in tmp_arr:
             print("Message received!")
             # Extracting the relevant information.
-            if my_id:
-                server_id = my_id
-                ip = msg['ip']
-                port = msg['port']
-                data_ = msg['message']
+            server_id = my_id
+            ip = msg['ip']
+            port = msg['port']
+            data_ = msg['message']
 
-                current_port = port  # Update the current port for the mix server new server.
-                # t1 = threading.Thread(target=make_server)
+            current_port = port  # Update the current port for the mix server new server.
 
-                with (socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s):
-                    # print(f"Connecting to {ip}:{port}")
-                    s.connect((ip, port))
-                    s.sendall(data_)
+            with (socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s):
+                s.connect((ip, port))
+                s.sendall(data_)
 
-                    print(f"New message sent to server {my_id}, on {ip}:{port}"
-                          f"\nThe message is {data_}")
+                print(f"New message sent to server {my_id}, on {ip}:{port}"
+                      f"\nThe message is {data_}")
 
-                    s.close()
+                s.close()
         print("Wait for a new message...")
         time.sleep(10)  # Sleeps for 10 sec to wait for new messages.
 
 
-def make_server():
-    stop = False
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.bind(('', current_port))
-    sock.listen()
-    while not stop:
-        conn, addr = sock.accept()
-        with conn:
-            print("New connection established!")
-            data = conn.recv(1024)
-
-
-def extract_params_from_msg(msg):
-    # Global variables that will be used in this function.
-    global current_server_id
-    global first
-    global path_of_servers
-    server_sk = load_single_SK(my_id)
+def extract_params_from_msg(msg, _id):
+    server_sk = load_single_SK(_id)
     cipher = PKCS1_OAEP.new(server_sk)
-    message_decrypted = cipher.decrypt(message)
+    message_decrypted = cipher.decrypt(msg)
     ip = [str(b) for b in message_decrypted[:4]]
     ip = '.'.join(ip)
     port = int.from_bytes(message_decrypted[4:6], byteorder='big')
@@ -81,7 +61,7 @@ def extract_params_from_msg(msg):
     }
 
 
-if __name__ == '__main__':
+def main(_id):
     # Initialize a general server,
     # that will capture every data sent from any ip address to a random open port,
     # and execute the `send_message()` function.
@@ -89,13 +69,12 @@ if __name__ == '__main__':
 
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    user_inpt = sys.argv[1]
-    if user_inpt.isdigit():
-        my_id = int(user_inpt)  # Get the id of the current server from the command line input
+    if _id.isdigit():
+        server_id = int(_id)  # Get the id of the current server from the command line input
 
-        server.bind(('', ports[my_id - 1]))
+        server.bind(('', ports[server_id - 1]))
         server.listen()
-        print(f"Server {my_id} listening...")
+        print(f"Server {server_id} listening...")
 
         t = threading.Thread(target=send_message)
         t.daemon = True
@@ -106,12 +85,23 @@ if __name__ == '__main__':
             print(f"Client {client_address} connected")
             try:
                 message = client_sock.recv(1024)
-                msg_params = extract_params_from_msg(
-                    message)  # The params extracted from the message (after decryption).
+                msg_params = extract_params_from_msg(message,
+                                                     server_id)  # The params extracted from the message (after decryption).
                 messages.append(msg_params)
                 client_sock.close()
             except Exception as e:
                 print(f'Error: {e}')
     else:
-        print(f"Server cannot be opened server {user_inpt}, try again to insert server id.")
+        print(f"Server cannot be opened server {_id}, try again to insert server id.")
     server.close()
+
+
+if __name__ == '__main__':
+    # user_inpt
+    parser = argparse.ArgumentParser(description='Message Sender Script')
+    parser.add_argument('--server_id', type=str, help='The ID of the server')
+    args = parser.parse_args()
+
+    my_id = args.server_id
+    time.sleep(3)
+    main(my_id)

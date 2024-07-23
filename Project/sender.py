@@ -1,6 +1,7 @@
 import socket
 import time
 import sys
+import argparse
 from Crypto.Cipher import PKCS1_OAEP
 
 from helper_functions import *
@@ -51,9 +52,8 @@ def send_message(ip, port, encrypted_message):
         print("Message successfully sent!")
 
 
-if __name__ == '__main__':
+def main(msg_idx):
     print("Sender is running...")
-    msg_idx = sys.argv[1]
     if msg_idx.isdigit():
         params = extract_params_for_msg(msg_idx)
         print(f"params: {params}")
@@ -65,3 +65,12 @@ if __name__ == '__main__':
         create_new_message(params)
     else:
         print(f"{msg_idx} is not a digit, try again.")
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Message Sender Script')
+    parser.add_argument('--msg_idx', type=str, help='Message index to process')
+    args = parser.parse_args()
+    msg_idx = args.msg_idx
+
+    main(msg_idx)
